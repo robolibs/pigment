@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0] - 2025-07-02
+
+### <!-- 0 -->⛰️  Features
+
+- Enhance color manipulation and conversion utilities
+- Feat: Enhance color type conversion and harmony generation
+
+### <!-- 6 -->🧪 Testing
+
+- Add comprehensive color utility test coverage
+
 ## [0.3.2] - 2025-07-02
 
 ### <!-- 2 -->🚜 Refactor
