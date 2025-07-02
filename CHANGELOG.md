@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.2] - 2025-07-02
+
+### <!-- 2 -->🚜 Refactor
+
+- Condense RGB and MONO color space functions
+
 ## [0.3.1] - 2025-06-15
 
 ### <!-- 0 -->⛰️  Features
