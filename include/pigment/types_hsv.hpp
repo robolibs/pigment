@@ -15,6 +15,12 @@ namespace pigment {
         HSV() = default;
         HSV(float h_, float s_, float v_) : h(h_), s(s_), v(v_) { normalize(); }
 
+        // Hex string constructor
+        HSV(const std::string &hex) {
+            RGB rgb(hex);  // Use RGB hex parsing
+            *this = fromRGB(rgb);
+        }
+
         // Clamp fields into valid ranges
         void normalize() {
             // wrap hue into [0,360)
@@ -128,6 +134,12 @@ namespace pigment {
                 // move s toward 0.0
                 s = std::clamp(s + delta * s, 0.0f, 1.0f);
             }
+        }
+
+        // Convert HSV to hex string
+        std::string to_hex(bool include_alpha = false) const {
+            RGB rgb = to_rgb();
+            return rgb.to_hex(include_alpha);
         }
     };
 

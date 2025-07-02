@@ -245,11 +245,65 @@ namespace pigment {
             });
         }
 
-        // Color distance calculation
+        // Color distance calculation (LAB-based perceptual distance)
         inline double color_distance(const RGB &color1, const RGB &color2) {
             LAB lab1 = LAB::fromRGB(color1);
             LAB lab2 = LAB::fromRGB(color2);
             return lab1.delta_e(lab2);
+        }
+
+        // Simple RGB Euclidean distance
+        inline double rgb_distance(const RGB &color1, const RGB &color2) {
+            double dr = color1.r - color2.r;
+            double dg = color1.g - color2.g;
+            double db = color1.b - color2.b;
+            return std::sqrt(dr * dr + dg * dg + db * db);
+        }
+
+        // Brightness difference (perceived luminance)
+        inline double brightness_difference(const RGB &color1, const RGB &color2) {
+            return std::abs(color1.luminance() - color2.luminance());
+        }
+
+        // Hue difference in degrees (0-180, shortest angular distance)
+        inline double hue_difference(const RGB &color1, const RGB &color2) {
+            HSL hsl1 = HSL::fromRGB(color1);
+            HSL hsl2 = HSL::fromRGB(color2);
+            
+            double h1 = hsl1.get_h();
+            double h2 = hsl2.get_h();
+            
+            // Calculate shortest angular distance
+            double diff = std::abs(h1 - h2);
+            if (diff > 180.0) {
+                diff = 360.0 - diff;
+            }
+            
+            return diff;
+        }
+
+        // Saturation difference
+        inline double saturation_difference(const RGB &color1, const RGB &color2) {
+            HSL hsl1 = HSL::fromRGB(color1);
+            HSL hsl2 = HSL::fromRGB(color2);
+            return std::abs(hsl1.get_s() - hsl2.get_s());
+        }
+
+        // Lightness difference
+        inline double lightness_difference(const RGB &color1, const RGB &color2) {
+            HSL hsl1 = HSL::fromRGB(color1);
+            HSL hsl2 = HSL::fromRGB(color2);
+            return std::abs(hsl1.get_l() - hsl2.get_l());
+        }
+
+        // Check if two colors are similar (multiple criteria)
+        inline bool colors_similar(const RGB &color1, const RGB &color2, 
+                                  double rgb_threshold = 30.0, 
+                                  double brightness_threshold = 20.0,
+                                  double hue_threshold = 15.0) {
+            return rgb_distance(color1, color2) < rgb_threshold &&
+                   brightness_difference(color1, color2) < brightness_threshold &&
+                   hue_difference(color1, color2) < hue_threshold;
         }
 
         // Find the closest color in a palette
@@ -281,6 +335,209 @@ namespace pigment {
             }
 
             return quantized;
+        }
+
+        // Color validation functions
+        inline bool is_valid_rgb(int r, int g, int b, int a = 255) {
+            return r >= 0 && r <= 255 && 
+                   g >= 0 && g <= 255 && 
+                   b >= 0 && b <= 255 && 
+                   a >= 0 && a <= 255;
+        }
+
+        inline bool is_valid_hsl(double h, double s, double l) {
+            return h >= 0.0 && h < 360.0 && 
+                   s >= 0.0 && s <= 1.0 && 
+                   l >= 0.0 && l <= 1.0;
+        }
+
+        inline bool is_valid_hsv(double h, double s, double v) {
+            return h >= 0.0 && h < 360.0 && 
+                   s >= 0.0 && s <= 1.0 && 
+                   v >= 0.0 && v <= 1.0;
+        }
+
+        inline bool is_valid_lab(double l, double a, double b) {
+            return l >= 0.0 && l <= 100.0 && 
+                   a >= -128.0 && a <= 127.0 && 
+                   b >= -128.0 && b <= 127.0;
+        }
+
+        // String validation functions
+        inline bool is_valid_hex_color(const std::string &hex) {
+            if (hex.empty()) return false;
+            
+            std::string h = hex;
+            if (h[0] == '#') h.erase(0, 1);
+            
+            if (h.size() != 3 && h.size() != 6 && h.size() != 8) return false;
+            
+            for (char c : h) {
+                if (!std::isxdigit(c)) return false;
+            }
+            
+            return true;
+        }
+
+        inline bool is_valid_css_rgb(const std::string &css) {
+            if (css.empty()) return false;
+            return css.substr(0, 4) == "rgb(" || css.substr(0, 5) == "rgba(";
+        }
+
+        inline bool is_valid_css_hsl(const std::string &css) {
+            if (css.empty()) return false;
+            return css.substr(0, 4) == "hsl(" || css.substr(0, 5) == "hsla(";
+        }
+
+        // Sanitization functions - clamp values to valid ranges
+        inline RGB sanitize_rgb(int r, int g, int b, int a = 255) {
+            return RGB(std::clamp(r, 0, 255), 
+                      std::clamp(g, 0, 255), 
+                      std::clamp(b, 0, 255), 
+                      std::clamp(a, 0, 255));
+        }
+
+        inline HSL sanitize_hsl(double h, double s, double l) {
+            // Normalize hue to [0, 360)
+            h = std::fmod(h, 360.0);
+            if (h < 0) h += 360.0;
+            
+            return HSL(h, std::clamp(s, 0.0, 1.0), std::clamp(l, 0.0, 1.0));
+        }
+
+        // Temperature to RGB conversion (Kelvin to RGB)
+        inline RGB temperature_to_rgb(double kelvin) {
+            // Clamp temperature to reasonable range
+            kelvin = std::clamp(kelvin, 1000.0, 40000.0);
+            
+            double temp = kelvin / 100.0;
+            double red, green, blue;
+            
+            // Calculate red
+            if (temp <= 66.0) {
+                red = 255.0;
+            } else {
+                red = temp - 60.0;
+                red = 329.698727446 * std::pow(red, -0.1332047592);
+                red = std::clamp(red, 0.0, 255.0);
+            }
+            
+            // Calculate green
+            if (temp <= 66.0) {
+                green = temp;
+                green = 99.4708025861 * std::log(green) - 161.1195681661;
+                green = std::clamp(green, 0.0, 255.0);
+            } else {
+                green = temp - 60.0;
+                green = 288.1221695283 * std::pow(green, -0.0755148492);
+                green = std::clamp(green, 0.0, 255.0);
+            }
+            
+            // Calculate blue
+            if (temp >= 66.0) {
+                blue = 255.0;
+            } else if (temp <= 19.0) {
+                blue = 0.0;
+            } else {
+                blue = temp - 10.0;
+                blue = 138.5177312231 * std::log(blue) - 305.0447927307;
+                blue = std::clamp(blue, 0.0, 255.0);
+            }
+            
+            return RGB(static_cast<uint8_t>(red), 
+                      static_cast<uint8_t>(green), 
+                      static_cast<uint8_t>(blue));
+        }
+
+        // Grayscale conversion variants
+        inline RGB to_grayscale_average(const RGB &color) {
+            uint8_t gray = static_cast<uint8_t>((color.r + color.g + color.b) / 3);
+            return RGB(gray, gray, gray, color.a);
+        }
+
+        inline RGB to_grayscale_luminance(const RGB &color) {
+            uint8_t gray = static_cast<uint8_t>(color.luminance());
+            return RGB(gray, gray, gray, color.a);
+        }
+
+        inline RGB to_grayscale_lightness(const RGB &color) {
+            uint8_t gray = static_cast<uint8_t>((std::max({color.r, color.g, color.b}) + 
+                                               std::min({color.r, color.g, color.b})) / 2);
+            return RGB(gray, gray, gray, color.a);
+        }
+
+        inline RGB to_grayscale_desaturate(const RGB &color) {
+            HSL hsl = HSL::fromRGB(color);
+            return HSL(hsl.get_h(), 0.0, hsl.get_l()).to_rgb();
+        }
+
+        // Sepia tone conversion
+        inline RGB to_sepia(const RGB &color) {
+            double r = color.r;
+            double g = color.g;
+            double b = color.b;
+            
+            uint8_t sepia_r = static_cast<uint8_t>(std::clamp((r * 0.393) + (g * 0.769) + (b * 0.189), 0.0, 255.0));
+            uint8_t sepia_g = static_cast<uint8_t>(std::clamp((r * 0.349) + (g * 0.686) + (b * 0.168), 0.0, 255.0));
+            uint8_t sepia_b = static_cast<uint8_t>(std::clamp((r * 0.272) + (g * 0.534) + (b * 0.131), 0.0, 255.0));
+            
+            return RGB(sepia_r, sepia_g, sepia_b, color.a);
+        }
+
+        // Remove duplicate colors from palette
+        inline std::vector<RGB> remove_duplicates(const std::vector<RGB> &palette, double threshold = 5.0) {
+            std::vector<RGB> unique_colors;
+            
+            for (const auto &color : palette) {
+                bool is_duplicate = false;
+                for (const auto &unique : unique_colors) {
+                    if (rgb_distance(color, unique) < threshold) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    unique_colors.push_back(color);
+                }
+            }
+            
+            return unique_colors;
+        }
+
+        // Extract dominant colors from a color array (simple approach)
+        inline std::vector<RGB> extract_dominant_colors(const std::vector<RGB> &colors, int count = 5) {
+            if (colors.empty()) return {};
+            
+            // Simple approach: cluster colors by similarity and pick representatives
+            std::vector<RGB> dominant;
+            std::vector<RGB> remaining = colors;
+            
+            while (dominant.size() < static_cast<size_t>(count) && !remaining.empty()) {
+                // Find the color that's most different from already selected colors
+                RGB best_color = remaining[0];
+                double best_distance = 0.0;
+                size_t best_index = 0;
+                
+                for (size_t i = 0; i < remaining.size(); ++i) {
+                    double min_distance = std::numeric_limits<double>::max();
+                    
+                    for (const auto &selected : dominant) {
+                        double dist = rgb_distance(remaining[i], selected);
+                        min_distance = std::min(min_distance, dist);
+                    }
+                    
+                    if (min_distance > best_distance) {
+                        best_distance = min_distance;
+                        best_color = remaining[i];
+                        best_index = i;
+                    }
+                }
+                
+                dominant.push_back(best_color);
+                remaining.erase(remaining.begin() + best_index);
+            }
+            
+            return dominant;
         }
 
     } // namespace utils

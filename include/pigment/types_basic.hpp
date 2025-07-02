@@ -32,8 +32,19 @@ namespace pigment {
         RGB() = default;
         constexpr RGB(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_ = 255) : r(r_), g(g_), b(b_), a(a_) {}
 
-        RGB(const std::string &hex) {
-            std::string h = hex;
+        RGB(const std::string &color_str) {
+            if (color_str.empty()) {
+                throw std::invalid_argument("Empty color string");
+            }
+            
+            // Check if it's a CSS rgb() or rgba() function
+            if (color_str.substr(0, 4) == "rgb(" || color_str.substr(0, 5) == "rgba(") {
+                parse_css_rgb(color_str);
+                return;
+            }
+            
+            // Otherwise treat as hex
+            std::string h = color_str;
             if (!h.empty() && h[0] == '#') {
                 h.erase(0, 1);
             }
@@ -50,13 +61,53 @@ namespace pigment {
                 h += "ff";
             }
             if (h.size() != 8) {
-                throw std::invalid_argument("Invalid hex color: '" + hex + "'");
+                throw std::invalid_argument("Invalid hex color: '" + color_str + "'");
             }
             r = std::stoi(h.substr(0, 2), nullptr, 16);
             g = std::stoi(h.substr(2, 2), nullptr, 16);
             b = std::stoi(h.substr(4, 2), nullptr, 16);
             a = std::stoi(h.substr(6, 2), nullptr, 16);
         }
+
+    private:
+        void parse_css_rgb(const std::string &css_str) {
+            // Remove spaces and find the parentheses
+            std::string clean = css_str;
+            clean.erase(std::remove(clean.begin(), clean.end(), ' '), clean.end());
+            
+            size_t start = clean.find('(');
+            size_t end = clean.find(')', start);
+            
+            if (start == std::string::npos || end == std::string::npos) {
+                throw std::invalid_argument("Invalid CSS color format");
+            }
+            
+            std::string values = clean.substr(start + 1, end - start - 1);
+            
+            // Split by commas
+            std::vector<std::string> parts;
+            size_t pos = 0;
+            while (pos < values.length()) {
+                size_t comma = values.find(',', pos);
+                if (comma == std::string::npos) {
+                    parts.push_back(values.substr(pos));
+                    break;
+                }
+                parts.push_back(values.substr(pos, comma - pos));
+                pos = comma + 1;
+            }
+            
+            if (parts.size() < 3 || parts.size() > 4) {
+                throw std::invalid_argument("Invalid number of RGB components");
+            }
+            
+            r = static_cast<uint8_t>(std::clamp(std::stoi(parts[0]), 0, 255));
+            g = static_cast<uint8_t>(std::clamp(std::stoi(parts[1]), 0, 255));
+            b = static_cast<uint8_t>(std::clamp(std::stoi(parts[2]), 0, 255));
+            a = parts.size() == 4 ? static_cast<uint8_t>(std::clamp(static_cast<int>(std::stod(parts[3]) * 255), 0, 255)) : 255;
+        }
+
+    public:
 
         RGB(const std::tuple<uint8_t, uint8_t, uint8_t> &rgb_tuple)
             : r(std::get<0>(rgb_tuple)), g(std::get<1>(rgb_tuple)), b(std::get<2>(rgb_tuple)), a(255) {}
@@ -134,6 +185,99 @@ namespace pigment {
                        static_cast<uint8_t>(a * (1 - clamped_ratio) + other.a * clamped_ratio));
         }
 
+        // Blending modes
+        constexpr RGB blend_add(const RGB &other) const {
+            return RGB(r + other.r > 255 ? 255 : r + other.r,
+                       g + other.g > 255 ? 255 : g + other.g,
+                       b + other.b > 255 ? 255 : b + other.b, a);
+        }
+
+        constexpr RGB blend_subtract(const RGB &other) const {
+            return RGB(r > other.r ? r - other.r : 0,
+                       g > other.g ? g - other.g : 0,
+                       b > other.b ? b - other.b : 0, a);
+        }
+
+        constexpr RGB blend_multiply(const RGB &other) const {
+            return RGB(static_cast<uint8_t>((r * other.r) / 255),
+                       static_cast<uint8_t>((g * other.g) / 255),
+                       static_cast<uint8_t>((b * other.b) / 255), a);
+        }
+
+        constexpr RGB blend_screen(const RGB &other) const {
+            return RGB(static_cast<uint8_t>(255 - ((255 - r) * (255 - other.r)) / 255),
+                       static_cast<uint8_t>(255 - ((255 - g) * (255 - other.g)) / 255),
+                       static_cast<uint8_t>(255 - ((255 - b) * (255 - other.b)) / 255), a);
+        }
+
+        constexpr RGB blend_overlay(const RGB &other) const {
+            auto overlay_channel = [](uint8_t base, uint8_t blend) -> uint8_t {
+                if (base < 128) {
+                    return static_cast<uint8_t>((2 * base * blend) / 255);
+                } else {
+                    return static_cast<uint8_t>(255 - (2 * (255 - base) * (255 - blend)) / 255);
+                }
+            };
+            return RGB(overlay_channel(r, other.r),
+                       overlay_channel(g, other.g),
+                       overlay_channel(b, other.b), a);
+        }
+
+        // Alpha blending (proper alpha compositing)
+        RGB alpha_blend(const RGB &background) const {
+            if (a == 255) return *this;
+            if (a == 0) return background;
+            
+            double alpha_fg = a / 255.0;
+            double alpha_bg = background.a / 255.0;
+            double alpha_out = alpha_fg + alpha_bg * (1.0 - alpha_fg);
+            
+            if (alpha_out == 0.0) {
+                return RGB(0, 0, 0, 0);
+            }
+            
+            uint8_t r_out = static_cast<uint8_t>((r * alpha_fg + background.r * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
+            uint8_t g_out = static_cast<uint8_t>((g * alpha_fg + background.g * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
+            uint8_t b_out = static_cast<uint8_t>((b * alpha_fg + background.b * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
+            uint8_t a_out = static_cast<uint8_t>(alpha_out * 255.0);
+            
+            return RGB(r_out, g_out, b_out, a_out);
+        }
+
+        // Simple alpha blend with background (assumes opaque background)
+        RGB alpha_blend_simple(const RGB &background) const {
+            if (a == 255) return *this;
+            if (a == 0) return background;
+            
+            double alpha = a / 255.0;
+            double inv_alpha = 1.0 - alpha;
+            
+            return RGB(static_cast<uint8_t>(r * alpha + background.r * inv_alpha),
+                       static_cast<uint8_t>(g * alpha + background.g * inv_alpha),
+                       static_cast<uint8_t>(b * alpha + background.b * inv_alpha),
+                       255);
+        }
+
+        // Set alpha channel
+        constexpr RGB with_alpha(uint8_t new_alpha) const {
+            return RGB(r, g, b, new_alpha);
+        }
+
+        // Get transparency (inverse of alpha)
+        constexpr double transparency() const {
+            return 1.0 - (a / 255.0);
+        }
+
+        // Check if color is transparent
+        constexpr bool is_transparent() const {
+            return a < 255;
+        }
+
+        // Check if color is opaque
+        constexpr bool is_opaque() const {
+            return a == 255;
+        }
+
         // Luminance calculation (perceived brightness)
         constexpr double luminance() const { return 0.299 * r + 0.587 * g + 0.114 * b; }
 
@@ -161,6 +305,25 @@ namespace pigment {
 
         // Invert color
         constexpr RGB invert() const { return RGB(255 - r, 255 - g, 255 - b, a); }
+
+        // Gamma correction utilities
+        RGB apply_gamma(double gamma = 2.2) const {
+            auto gamma_correct = [gamma](uint8_t val) -> uint8_t {
+                double normalized = val / 255.0;
+                double corrected = std::pow(normalized, 1.0 / gamma);
+                return static_cast<uint8_t>(std::clamp(corrected * 255.0, 0.0, 255.0));
+            };
+            return RGB(gamma_correct(r), gamma_correct(g), gamma_correct(b), a);
+        }
+
+        RGB remove_gamma(double gamma = 2.2) const {
+            auto gamma_remove = [gamma](uint8_t val) -> uint8_t {
+                double normalized = val / 255.0;
+                double linear = std::pow(normalized, gamma);
+                return static_cast<uint8_t>(std::clamp(linear * 255.0, 0.0, 255.0));
+            };
+            return RGB(gamma_remove(r), gamma_remove(g), gamma_remove(b), a);
+        }
 
         // Contrast adjustment
         RGB adjust_contrast(double contrast) const {

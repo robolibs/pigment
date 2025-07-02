@@ -27,6 +27,82 @@ namespace pigment {
             normalize();
         }
 
+        // CSS HSL string constructor
+        HSL(const std::string &hsl_str) {
+            if (hsl_str.empty()) {
+                throw std::invalid_argument("Empty HSL string");
+            }
+            
+            // Check if it's a CSS hsl() or hsla() function
+            if (hsl_str.substr(0, 4) == "hsl(" || hsl_str.substr(0, 5) == "hsla(") {
+                parse_css_hsl(hsl_str);
+            } else {
+                throw std::invalid_argument("Invalid HSL format. Use hsl(h,s%,l%) or hsla(h,s%,l%,a)");
+            }
+        }
+
+    private:
+        void parse_css_hsl(const std::string &css_str) {
+            // Remove spaces and find the parentheses
+            std::string clean = css_str;
+            clean.erase(std::remove(clean.begin(), clean.end(), ' '), clean.end());
+            
+            size_t start = clean.find('(');
+            size_t end = clean.find(')', start);
+            
+            if (start == std::string::npos || end == std::string::npos) {
+                throw std::invalid_argument("Invalid CSS HSL format");
+            }
+            
+            std::string values = clean.substr(start + 1, end - start - 1);
+            
+            // Split by commas
+            std::vector<std::string> parts;
+            size_t pos = 0;
+            while (pos < values.length()) {
+                size_t comma = values.find(',', pos);
+                if (comma == std::string::npos) {
+                    parts.push_back(values.substr(pos));
+                    break;
+                }
+                parts.push_back(values.substr(pos, comma - pos));
+                pos = comma + 1;
+            }
+            
+            if (parts.size() < 3 || parts.size() > 4) {
+                throw std::invalid_argument("Invalid number of HSL components");
+            }
+            
+            // Parse hue (0-360)
+            double hue = std::stod(parts[0]);
+            double normalized_h = std::fmod(hue, 360.0);
+            if (normalized_h < 0) normalized_h += 360.0;
+            h = static_cast<uint16_t>(normalized_h * 100);
+            
+            // Parse saturation (remove % if present)
+            std::string sat_str = parts[1];
+            if (!sat_str.empty() && sat_str.back() == '%') {
+                sat_str.pop_back();
+            }
+            double saturation = std::stod(sat_str) / 100.0;
+            s = static_cast<uint8_t>(std::clamp(saturation, 0.0, 1.0) * 255);
+            
+            // Parse lightness (remove % if present)
+            std::string light_str = parts[2];
+            if (!light_str.empty() && light_str.back() == '%') {
+                light_str.pop_back();
+            }
+            double lightness = std::stod(light_str) / 100.0;
+            l = static_cast<uint8_t>(std::clamp(lightness, 0.0, 1.0) * 255);
+            
+            // Parse alpha if present
+            a = parts.size() == 4 ? static_cast<uint8_t>(std::clamp(std::stod(parts[3]), 0.0, 1.0) * 255) : 255;
+            
+            normalize();
+        }
+
+    public:
+
         // Getters for compatibility with tests expecting double values
         double get_h() const { return h / 100.0; }
         double get_s() const { return s / 255.0; }
