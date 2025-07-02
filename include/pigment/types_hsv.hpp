@@ -61,7 +61,7 @@ namespace pigment {
         }
 
         // Convert this HSV to RGB (alpha = 255)
-        RGB toRGB() const {
+        RGB to_rgb() const {
             float C = v * s;
             float X = C * (1 - std::fabs(std::fmod(h / 60.0f, 2.0f) - 1));
             float m = v - C;
@@ -130,5 +130,14 @@ namespace pigment {
             }
         }
     };
+
+    // Implementation of RGB conversion constructor  
+    inline RGB::RGB(const HSV& hsv) {
+        RGB temp = hsv.to_rgb();
+        r = temp.r;
+        g = temp.g;
+        b = temp.b; 
+        a = temp.a;
+    }
 
 } // namespace pigment

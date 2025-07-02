@@ -16,26 +16,27 @@ TEST_CASE("Color Conversion Edge Cases") {
         CHECK(max_rgb.r == 255);
         CHECK(mid_rgb.r == 128);
 
-        // Test that constructor accepts values outside 0-255 range
-        // (Note: The actual behavior depends on implementation)
-        RGB over_max(300, -50, 400);
-        // Just verify the constructor doesn't crash
-        // Values may or may not be clamped depending on implementation
+        // Test that constructor with out-of-range values gets truncated by uint8_t
+        RGB over_max(static_cast<uint8_t>(300), static_cast<uint8_t>(-50), static_cast<uint8_t>(400));
+        // Values are automatically truncated to uint8_t range (0-255)
+        CHECK(over_max.r == 44);  // 300 % 256 = 44  
+        CHECK(over_max.g == 206); // -50 as uint8_t = 256-50 = 206
+        CHECK(over_max.b == 144); // 400 % 256 = 144
         CHECK(true); // Constructor succeeded
     }
 
     SUBCASE("HSL Edge Values") {
         // Test hue wrapping
         HSL wrapped_hue(720.0, 0.5, 0.5); // 720° should normalize to 0°
-        CHECK(wrapped_hue.h == 0.0);
+        CHECK(wrapped_hue.h == 0); // 0.0 * 100
 
-        HSL negative_hue(-120.0, 0.5, 0.5); // -120° should normalize to 240°
-        CHECK(negative_hue.h == 240.0);
+        HSL negative_hue(-120.0, 0.5, 0.5); // -120° should normalize to 240°  
+        CHECK(negative_hue.h == 24000); // 240.0 * 100
 
         // Test saturation and lightness clamping
         HSL clamped(180.0, 2.0, -0.5);
-        CHECK(clamped.s == 1.0);
-        CHECK(clamped.l == 0.0);
+        CHECK(clamped.s == 255); // 1.0 * 255 (clamped)
+        CHECK(clamped.l == 0);   // 0.0 * 255 (clamped)
     }
 
     SUBCASE("HSV Edge Values") {
@@ -120,7 +121,7 @@ TEST_CASE("Precision and Rounding Tests") {
 
         for (const auto &original : test_colors) {
             HSV hsv = HSV::fromRGB(original);
-            RGB converted_back = hsv.toRGB();
+            RGB converted_back = hsv.to_rgb();
 
             // Allow for small rounding errors (within 2 units)
             CHECK(std::abs(converted_back.r - original.r) <= 2);

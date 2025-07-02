@@ -204,7 +204,7 @@ TEST_CASE("Stress Tests") {
             LAB lab = LAB::fromRGB(original);
 
             RGB from_hsl = hsl.to_rgb();
-            RGB from_hsv = hsv.toRGB();
+            RGB from_hsv = hsv.to_rgb();
             RGB from_lab = lab.to_rgb();
 
             // Should remain reasonably close to original

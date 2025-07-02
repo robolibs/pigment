@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iomanip>
 #include <random>
 #include <sstream>
@@ -13,14 +14,23 @@
 
 namespace pigment {
 
+    // Forward declarations
+    struct HSL;
+    struct HSV;
+    struct LAB;
+    struct MONO;
+    struct XYZ;
+    struct OKLAB;
+    struct LCH;
+
     struct RGB {
-        int r = 0;
-        int g = 0;
-        int b = 0;
-        int a = 255;
+        uint8_t r = 0;
+        uint8_t g = 0;
+        uint8_t b = 0;
+        uint8_t a = 255;
 
         RGB() = default;
-        RGB(int r_, int g_, int b_, int a_ = 255) : r(r_), g(g_), b(b_), a(a_) {}
+        constexpr RGB(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_ = 255) : r(r_), g(g_), b(b_), a(a_) {}
 
         RGB(const std::string &hex) {
             std::string h = hex;
@@ -48,36 +58,52 @@ namespace pigment {
             a = std::stoi(h.substr(6, 2), nullptr, 16);
         }
 
-        RGB(const std::tuple<int, int, int> &rgb_tuple)
+        RGB(const std::tuple<uint8_t, uint8_t, uint8_t> &rgb_tuple)
             : r(std::get<0>(rgb_tuple)), g(std::get<1>(rgb_tuple)), b(std::get<2>(rgb_tuple)), a(255) {}
+
+        // Implicit conversions from other color types
+        RGB(const MONO& mono);  // Defined after MONO is complete
+        RGB(const HSL& hsl);    // Defined after HSL is complete
+        RGB(const HSV& hsv);    // Defined after HSV is complete  
+        RGB(const LAB& lab);    // Defined after LAB is complete
+        RGB(const XYZ& xyz);    // Defined after XYZ is complete
+        RGB(const OKLAB& oklab); // Defined after OKLAB is complete
+        RGB(const LCH& lch);    // Defined after LCH is complete
 
         // Convert to hex string
         std::string to_hex(bool include_alpha = false) const {
             std::stringstream ss;
-            ss << "#" << std::hex << std::setfill('0') << std::setw(2) << r << std::setw(2) << g << std::setw(2) << b;
+            ss << "#" << std::hex << std::setfill('0') 
+               << std::setw(2) << static_cast<int>(r) 
+               << std::setw(2) << static_cast<int>(g) 
+               << std::setw(2) << static_cast<int>(b);
             if (include_alpha && a != 255) {
-                ss << std::setw(2) << a;
+                ss << std::setw(2) << static_cast<int>(a);
             }
             return ss.str();
         }
 
         // Arithmetic operations
         RGB operator+(const RGB &other) const {
-            return RGB(std::clamp(r + other.r, 0, 255), std::clamp(g + other.g, 0, 255),
-                       std::clamp(b + other.b, 0, 255), std::clamp(a + other.a, 0, 255));
+            return RGB(std::clamp(static_cast<int>(r) + other.r, 0, 255), 
+                       std::clamp(static_cast<int>(g) + other.g, 0, 255),
+                       std::clamp(static_cast<int>(b) + other.b, 0, 255), 
+                       std::clamp(static_cast<int>(a) + other.a, 0, 255));
         }
 
         RGB operator-(const RGB &other) const {
-            return RGB(std::clamp(r - other.r, 0, 255), std::clamp(g - other.g, 0, 255),
-                       std::clamp(b - other.b, 0, 255), std::clamp(a - other.a, 0, 255));
+            return RGB(std::clamp(static_cast<int>(r) - other.r, 0, 255), 
+                       std::clamp(static_cast<int>(g) - other.g, 0, 255),
+                       std::clamp(static_cast<int>(b) - other.b, 0, 255), 
+                       std::clamp(static_cast<int>(a) - other.a, 0, 255));
         }
 
-        operator std::tuple<int, int, int>() const { return std::make_tuple(r, g, b); }
+        operator std::tuple<uint8_t, uint8_t, uint8_t>() const { return std::make_tuple(r, g, b); }
 
-        RGB operator*(double factor) const {
-            return RGB(std::clamp(static_cast<int>(r * factor), 0, 255),
-                       std::clamp(static_cast<int>(g * factor), 0, 255),
-                       std::clamp(static_cast<int>(b * factor), 0, 255), a);
+        constexpr RGB operator*(double factor) const {
+            return RGB(static_cast<uint8_t>(r * factor > 255 ? 255 : (r * factor < 0 ? 0 : r * factor)),
+                       static_cast<uint8_t>(g * factor > 255 ? 255 : (g * factor < 0 ? 0 : g * factor)),
+                       static_cast<uint8_t>(b * factor > 255 ? 255 : (b * factor < 0 ? 0 : b * factor)), a);
         }
 
         RGB &operator+=(const RGB &other) {
@@ -95,24 +121,24 @@ namespace pigment {
         bool operator!=(const RGB &other) const { return !(*this == other); }
 
         // Brightness adjustment
-        RGB brighten(double factor = 0.2) const { return *this * (1.0 + factor); }
+        constexpr RGB brighten(double factor = 0.2) const { return *this * (1.0 + factor); }
 
-        RGB darken(double factor = 0.2) const { return *this * (1.0 - factor); }
+        constexpr RGB darken(double factor = 0.2) const { return *this * (1.0 - factor); }
 
         // Color mixing
-        RGB mix(const RGB &other, double ratio = 0.5) const {
-            ratio = std::clamp(ratio, 0.0, 1.0);
-            return RGB(static_cast<int>(r * (1 - ratio) + other.r * ratio),
-                       static_cast<int>(g * (1 - ratio) + other.g * ratio),
-                       static_cast<int>(b * (1 - ratio) + other.b * ratio),
-                       static_cast<int>(a * (1 - ratio) + other.a * ratio));
+        constexpr RGB mix(const RGB &other, double ratio = 0.5) const {
+            double clamped_ratio = ratio < 0.0 ? 0.0 : (ratio > 1.0 ? 1.0 : ratio);
+            return RGB(static_cast<uint8_t>(r * (1 - clamped_ratio) + other.r * clamped_ratio),
+                       static_cast<uint8_t>(g * (1 - clamped_ratio) + other.g * clamped_ratio),
+                       static_cast<uint8_t>(b * (1 - clamped_ratio) + other.b * clamped_ratio),
+                       static_cast<uint8_t>(a * (1 - clamped_ratio) + other.a * clamped_ratio));
         }
 
         // Luminance calculation (perceived brightness)
-        double luminance() const { return 0.299 * r + 0.587 * g + 0.114 * b; }
+        constexpr double luminance() const { return 0.299 * r + 0.587 * g + 0.114 * b; }
 
-        bool is_dark() const { return luminance() < 128; }
-        bool is_light() const { return luminance() >= 128; }
+        constexpr bool is_dark() const { return luminance() < 128; }
+        constexpr bool is_light() const { return luminance() >= 128; }
 
         // Color temperature adjustment
         RGB warm(double factor = 0.1) const {
@@ -129,12 +155,12 @@ namespace pigment {
 
         // Grayscale conversion
         RGB to_grayscale() const {
-            int gray = static_cast<int>(luminance());
+            uint8_t gray = static_cast<uint8_t>(luminance());
             return RGB(gray, gray, gray, a);
         }
 
         // Invert color
-        RGB invert() const { return RGB(255 - r, 255 - g, 255 - b, a); }
+        constexpr RGB invert() const { return RGB(255 - r, 255 - g, 255 - b, a); }
 
         // Contrast adjustment
         RGB adjust_contrast(double contrast) const {
@@ -154,36 +180,38 @@ namespace pigment {
         }
 
         // Predefined colors
-        static RGB black() { return RGB(0, 0, 0); }
-        static RGB white() { return RGB(255, 255, 255); }
-        static RGB red() { return RGB(255, 0, 0); }
-        static RGB green() { return RGB(0, 255, 0); }
-        static RGB blue() { return RGB(0, 0, 255); }
-        static RGB yellow() { return RGB(255, 255, 0); }
-        static RGB cyan() { return RGB(0, 255, 255); }
-        static RGB magenta() { return RGB(255, 0, 255); }
-        static RGB transparent() { return RGB(0, 0, 0, 0); }
+        static constexpr RGB black() { return RGB(0, 0, 0); }
+        static constexpr RGB white() { return RGB(255, 255, 255); }
+        static constexpr RGB red() { return RGB(255, 0, 0); }
+        static constexpr RGB green() { return RGB(0, 255, 0); }
+        static constexpr RGB blue() { return RGB(0, 0, 255); }
+        static constexpr RGB yellow() { return RGB(255, 255, 0); }
+        static constexpr RGB cyan() { return RGB(0, 255, 255); }
+        static constexpr RGB magenta() { return RGB(255, 0, 255); }
+        static constexpr RGB transparent() { return RGB(0, 0, 0, 0); }
     };
 
     struct MONO {
-        int v = 0;
-        int a = 255;
+        uint8_t v = 0;
+        uint8_t a = 255;
 
         MONO() = default;
-        MONO(int v_, int a_ = 255) : v(std::clamp(v_, 0, 255)), a(std::clamp(a_, 0, 255)) {}
+        constexpr MONO(uint8_t v_, uint8_t a_ = 255) : v(v_), a(a_) {}
 
         // Convert from RGB using luminance
-        MONO(const RGB &rgb) : v(static_cast<int>(rgb.luminance())), a(rgb.a) {}
+        MONO(const RGB &rgb) : v(static_cast<uint8_t>(rgb.luminance())), a(rgb.a) {}
 
         // Convert to RGB
         RGB to_rgb() const { return RGB(v, v, v, a); }
 
         // Arithmetic operations
-        MONO operator+(const MONO &other) const { return MONO(std::clamp(v + other.v, 0, 255), a); }
+        MONO operator+(const MONO &other) const { return MONO(std::clamp(static_cast<int>(v) + other.v, 0, 255), a); }
 
-        MONO operator-(const MONO &other) const { return MONO(std::clamp(v - other.v, 0, 255), a); }
+        MONO operator-(const MONO &other) const { return MONO(std::clamp(static_cast<int>(v) - other.v, 0, 255), a); }
 
-        MONO operator*(double factor) const { return MONO(std::clamp(static_cast<int>(v * factor), 0, 255), a); }
+        constexpr MONO operator*(double factor) const { 
+            return MONO(static_cast<uint8_t>(v * factor > 255 ? 255 : (v * factor < 0 ? 0 : v * factor)), a); 
+        }
 
         bool operator==(const MONO &other) const { return v == other.v && a == other.a; }
 
@@ -192,24 +220,24 @@ namespace pigment {
         bool operator<(const MONO &other) const { return v < other.v; }
 
         // Brightness adjustment
-        MONO brighten(double factor = 0.2) const { return *this * (1.0 + factor); }
+        constexpr MONO brighten(double factor = 0.2) const { return *this * (1.0 + factor); }
 
-        MONO darken(double factor = 0.2) const { return *this * (1.0 - factor); }
+        constexpr MONO darken(double factor = 0.2) const { return *this * (1.0 - factor); }
 
         // Invert
-        MONO invert() const { return MONO(255 - v, a); }
+        constexpr MONO invert() const { return MONO(255 - v, a); }
 
         // Mix with another monochrome color
-        MONO mix(const MONO &other, double ratio = 0.5) const {
-            ratio = std::clamp(ratio, 0.0, 1.0);
-            return MONO(static_cast<int>(v * (1 - ratio) + other.v * ratio),
-                        static_cast<int>(a * (1 - ratio) + other.a * ratio));
+        constexpr MONO mix(const MONO &other, double ratio = 0.5) const {
+            double clamped_ratio = ratio < 0.0 ? 0.0 : (ratio > 1.0 ? 1.0 : ratio);
+            return MONO(static_cast<uint8_t>(v * (1 - clamped_ratio) + other.v * clamped_ratio),
+                        static_cast<uint8_t>(a * (1 - clamped_ratio) + other.a * clamped_ratio));
         }
 
         // Convert to hex string
         std::string to_hex() const {
             std::stringstream ss;
-            ss << "#" << std::hex << std::setfill('0') << std::setw(2) << v;
+            ss << "#" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(v);
             return ss.str();
         }
 
@@ -221,8 +249,12 @@ namespace pigment {
         }
 
         // Predefined values
-        static MONO black() { return MONO(0); }
-        static MONO white() { return MONO(255); }
-        static MONO gray() { return MONO(128); }
+        static constexpr MONO black() { return MONO(0); }
+        static constexpr MONO white() { return MONO(255); }
+        static constexpr MONO gray() { return MONO(128); }
     };
+
+    // Implementation of RGB conversion constructor for MONO
+    inline RGB::RGB(const MONO& mono) : r(mono.v), g(mono.v), b(mono.v), a(mono.a) {}
+
 } // namespace pigment

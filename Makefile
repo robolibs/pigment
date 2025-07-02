@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 PROJECT_NAME := $(shell grep -Po 'set\s*\(\s*project_name\s+\K[^)]+' CMakeLists.txt)
 PROJECT_CAP  := $(shell echo $(PROJECT_NAME) | tr '[:lower:]' '[:upper:]')
 LATEST_TAG   ?= $(shell git describe --tags --abbrev=0 2>/dev/null)
@@ -16,7 +18,7 @@ $(info ------------------------------------------)
 
 
 build:
-	@cd $(BUILD_DIR) && make -j$(shell nproc) 2>&1 | tee >(grep "^$(TOP_HEAD)" | grep -E "error:" > "$(TOP_HEAD)/.quickfix") || true
+	@cd $(BUILD_DIR) && make -j$(shell nproc) 2>&1 | tee >(grep "^$(TOP_DIR)" | grep -E "error:" > "$(TOP_DIR)/.quickfix") || true
 
 b: build
 

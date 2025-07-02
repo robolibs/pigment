@@ -130,6 +130,62 @@ namespace pigment {
             return color_temperature(color) < 5000; // Below daylight temperature
         }
 
+        // Generate monochromatic color variations
+        inline std::vector<RGB> generate_monochromatic(const RGB &base, int count = 5) {
+            HSL hsl = HSL::fromRGB(base);
+            std::vector<RGB> colors;
+            colors.reserve(count);
+
+            // Generate variations by adjusting lightness and saturation
+            for (int i = 0; i < count; ++i) {
+                
+                // Create variations with different lightness levels
+                HSL variation = hsl;
+                if (i == count / 2) {
+                    // Keep original color in the middle
+                    colors.push_back(base);
+                } else if (i < count / 2) {
+                    // Darker variations
+                    variation = hsl.darken(0.1 * (count / 2 - i));
+                } else {
+                    // Lighter variations
+                    variation = hsl.lighten(0.1 * (i - count / 2));
+                }
+                
+                if (i != count / 2) {
+                    colors.push_back(variation.to_rgb());
+                }
+            }
+
+            return colors;
+        }
+
+        // Generate enhanced split-complementary with custom angles
+        inline std::vector<RGB> generate_split_complementary(const RGB &base, double angle = 30.0) {
+            HSL hsl = HSL::fromRGB(base);
+            std::vector<RGB> colors = {base};
+            
+            // Generate split-complementary with custom angle
+            colors.push_back(hsl.adjust_hue(180.0 - angle).to_rgb());
+            colors.push_back(hsl.adjust_hue(180.0 + angle).to_rgb());
+            
+            return colors;
+        }
+
+        // Generate colors based on golden ratio (137.5°)
+        inline std::vector<RGB> generate_golden_ratio_scheme(const RGB &base, int count = 5) {
+            constexpr double GOLDEN_ANGLE = 137.507764050; // Golden angle in degrees
+            HSL hsl = HSL::fromRGB(base);
+            std::vector<RGB> colors = {base};
+            
+            for (int i = 1; i < count; ++i) {
+                HSL variation = hsl.adjust_hue(GOLDEN_ANGLE * i);
+                colors.push_back(variation.to_rgb());
+            }
+            
+            return colors;
+        }
+
         // Generate a harmonious color scheme
         inline std::vector<RGB> generate_harmony(const RGB &base, const std::string &scheme = "complementary") {
             HSL hsl = HSL::fromRGB(base);
@@ -158,6 +214,10 @@ namespace pigment {
                 colors.push_back(hsl.adjust_hue(90).to_rgb());
                 colors.push_back(hsl.adjust_hue(180).to_rgb());
                 colors.push_back(hsl.adjust_hue(270).to_rgb());
+            } else if (scheme == "monochromatic") {
+                return generate_monochromatic(base, 5);
+            } else if (scheme == "golden_ratio") {
+                return generate_golden_ratio_scheme(base, 5);
             }
 
             return colors;

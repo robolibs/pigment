@@ -21,7 +21,7 @@ TEST_CASE("HSV Color Tests") {
     SUBCASE("HSV RGB Conversion") {
         RGB blue = RGB::blue();
         HSV hsv_blue = HSV::fromRGB(blue);
-        RGB back_to_rgb = hsv_blue.toRGB();
+        RGB back_to_rgb = hsv_blue.to_rgb();
 
         // Allow small rounding errors
         CHECK(std::abs(back_to_rgb.r - blue.r) <= 1);
