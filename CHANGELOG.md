@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.2] - 2025-12-31
+
+### <!-- 2 -->🚜 Refactor
+
+- Update build system, remove tests, simplify Makefile
+
 ## [1.0.0] - 2025-07-02
 
 ### <!-- 0 -->⛰️  Features
