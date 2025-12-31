@@ -36,13 +36,13 @@ namespace pigment {
             if (color_str.empty()) {
                 throw std::invalid_argument("Empty color string");
             }
-            
+
             // Check if it's a CSS rgb() or rgba() function
             if (color_str.substr(0, 4) == "rgb(" || color_str.substr(0, 5) == "rgba(") {
                 parse_css_rgb(color_str);
                 return;
             }
-            
+
             // Otherwise treat as hex
             std::string h = color_str;
             if (!h.empty() && h[0] == '#') {
@@ -69,21 +69,21 @@ namespace pigment {
             a = std::stoi(h.substr(6, 2), nullptr, 16);
         }
 
-    private:
+      private:
         void parse_css_rgb(const std::string &css_str) {
             // Remove spaces and find the parentheses
             std::string clean = css_str;
             clean.erase(std::remove(clean.begin(), clean.end(), ' '), clean.end());
-            
+
             size_t start = clean.find('(');
             size_t end = clean.find(')', start);
-            
+
             if (start == std::string::npos || end == std::string::npos) {
                 throw std::invalid_argument("Invalid CSS color format");
             }
-            
+
             std::string values = clean.substr(start + 1, end - start - 1);
-            
+
             // Split by commas
             std::vector<std::string> parts;
             size_t pos = 0;
@@ -96,38 +96,37 @@ namespace pigment {
                 parts.push_back(values.substr(pos, comma - pos));
                 pos = comma + 1;
             }
-            
+
             if (parts.size() < 3 || parts.size() > 4) {
                 throw std::invalid_argument("Invalid number of RGB components");
             }
-            
+
             r = static_cast<uint8_t>(std::clamp(std::stoi(parts[0]), 0, 255));
             g = static_cast<uint8_t>(std::clamp(std::stoi(parts[1]), 0, 255));
             b = static_cast<uint8_t>(std::clamp(std::stoi(parts[2]), 0, 255));
-            a = parts.size() == 4 ? static_cast<uint8_t>(std::clamp(static_cast<int>(std::stod(parts[3]) * 255), 0, 255)) : 255;
+            a = parts.size() == 4
+                    ? static_cast<uint8_t>(std::clamp(static_cast<int>(std::stod(parts[3]) * 255), 0, 255))
+                    : 255;
         }
 
-    public:
-
+      public:
         RGB(const std::tuple<uint8_t, uint8_t, uint8_t> &rgb_tuple)
             : r(std::get<0>(rgb_tuple)), g(std::get<1>(rgb_tuple)), b(std::get<2>(rgb_tuple)), a(255) {}
 
         // Implicit conversions from other color types
-        RGB(const MONO& mono);  // Defined after MONO is complete
-        RGB(const HSL& hsl);    // Defined after HSL is complete
-        RGB(const HSV& hsv);    // Defined after HSV is complete  
-        RGB(const LAB& lab);    // Defined after LAB is complete
-        RGB(const XYZ& xyz);    // Defined after XYZ is complete
-        RGB(const OKLAB& oklab); // Defined after OKLAB is complete
-        RGB(const LCH& lch);    // Defined after LCH is complete
+        RGB(const MONO &mono);   // Defined after MONO is complete
+        RGB(const HSL &hsl);     // Defined after HSL is complete
+        RGB(const HSV &hsv);     // Defined after HSV is complete
+        RGB(const LAB &lab);     // Defined after LAB is complete
+        RGB(const XYZ &xyz);     // Defined after XYZ is complete
+        RGB(const OKLAB &oklab); // Defined after OKLAB is complete
+        RGB(const LCH &lch);     // Defined after LCH is complete
 
         // Convert to hex string
         std::string to_hex(bool include_alpha = false) const {
             std::stringstream ss;
-            ss << "#" << std::hex << std::setfill('0') 
-               << std::setw(2) << static_cast<int>(r) 
-               << std::setw(2) << static_cast<int>(g) 
-               << std::setw(2) << static_cast<int>(b);
+            ss << "#" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(r) << std::setw(2)
+               << static_cast<int>(g) << std::setw(2) << static_cast<int>(b);
             if (include_alpha && a != 255) {
                 ss << std::setw(2) << static_cast<int>(a);
             }
@@ -136,17 +135,15 @@ namespace pigment {
 
         // Arithmetic operations
         RGB operator+(const RGB &other) const {
-            return RGB(std::clamp(static_cast<int>(r) + other.r, 0, 255), 
-                       std::clamp(static_cast<int>(g) + other.g, 0, 255),
-                       std::clamp(static_cast<int>(b) + other.b, 0, 255), 
-                       std::clamp(static_cast<int>(a) + other.a, 0, 255));
+            return RGB(
+                std::clamp(static_cast<int>(r) + other.r, 0, 255), std::clamp(static_cast<int>(g) + other.g, 0, 255),
+                std::clamp(static_cast<int>(b) + other.b, 0, 255), std::clamp(static_cast<int>(a) + other.a, 0, 255));
         }
 
         RGB operator-(const RGB &other) const {
-            return RGB(std::clamp(static_cast<int>(r) - other.r, 0, 255), 
-                       std::clamp(static_cast<int>(g) - other.g, 0, 255),
-                       std::clamp(static_cast<int>(b) - other.b, 0, 255), 
-                       std::clamp(static_cast<int>(a) - other.a, 0, 255));
+            return RGB(
+                std::clamp(static_cast<int>(r) - other.r, 0, 255), std::clamp(static_cast<int>(g) - other.g, 0, 255),
+                std::clamp(static_cast<int>(b) - other.b, 0, 255), std::clamp(static_cast<int>(a) - other.a, 0, 255));
         }
 
         operator std::tuple<uint8_t, uint8_t, uint8_t>() const { return std::make_tuple(r, g, b); }
@@ -187,20 +184,16 @@ namespace pigment {
 
         // Blending modes
         constexpr RGB blend_add(const RGB &other) const {
-            return RGB(r + other.r > 255 ? 255 : r + other.r,
-                       g + other.g > 255 ? 255 : g + other.g,
+            return RGB(r + other.r > 255 ? 255 : r + other.r, g + other.g > 255 ? 255 : g + other.g,
                        b + other.b > 255 ? 255 : b + other.b, a);
         }
 
         constexpr RGB blend_subtract(const RGB &other) const {
-            return RGB(r > other.r ? r - other.r : 0,
-                       g > other.g ? g - other.g : 0,
-                       b > other.b ? b - other.b : 0, a);
+            return RGB(r > other.r ? r - other.r : 0, g > other.g ? g - other.g : 0, b > other.b ? b - other.b : 0, a);
         }
 
         constexpr RGB blend_multiply(const RGB &other) const {
-            return RGB(static_cast<uint8_t>((r * other.r) / 255),
-                       static_cast<uint8_t>((g * other.g) / 255),
+            return RGB(static_cast<uint8_t>((r * other.r) / 255), static_cast<uint8_t>((g * other.g) / 255),
                        static_cast<uint8_t>((b * other.b) / 255), a);
         }
 
@@ -218,65 +211,61 @@ namespace pigment {
                     return static_cast<uint8_t>(255 - (2 * (255 - base) * (255 - blend)) / 255);
                 }
             };
-            return RGB(overlay_channel(r, other.r),
-                       overlay_channel(g, other.g),
-                       overlay_channel(b, other.b), a);
+            return RGB(overlay_channel(r, other.r), overlay_channel(g, other.g), overlay_channel(b, other.b), a);
         }
 
         // Alpha blending (proper alpha compositing)
         RGB alpha_blend(const RGB &background) const {
-            if (a == 255) return *this;
-            if (a == 0) return background;
-            
+            if (a == 255)
+                return *this;
+            if (a == 0)
+                return background;
+
             double alpha_fg = a / 255.0;
             double alpha_bg = background.a / 255.0;
             double alpha_out = alpha_fg + alpha_bg * (1.0 - alpha_fg);
-            
+
             if (alpha_out == 0.0) {
                 return RGB(0, 0, 0, 0);
             }
-            
-            uint8_t r_out = static_cast<uint8_t>((r * alpha_fg + background.r * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
-            uint8_t g_out = static_cast<uint8_t>((g * alpha_fg + background.g * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
-            uint8_t b_out = static_cast<uint8_t>((b * alpha_fg + background.b * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
+
+            uint8_t r_out =
+                static_cast<uint8_t>((r * alpha_fg + background.r * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
+            uint8_t g_out =
+                static_cast<uint8_t>((g * alpha_fg + background.g * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
+            uint8_t b_out =
+                static_cast<uint8_t>((b * alpha_fg + background.b * alpha_bg * (1.0 - alpha_fg)) / alpha_out);
             uint8_t a_out = static_cast<uint8_t>(alpha_out * 255.0);
-            
+
             return RGB(r_out, g_out, b_out, a_out);
         }
 
         // Simple alpha blend with background (assumes opaque background)
         RGB alpha_blend_simple(const RGB &background) const {
-            if (a == 255) return *this;
-            if (a == 0) return background;
-            
+            if (a == 255)
+                return *this;
+            if (a == 0)
+                return background;
+
             double alpha = a / 255.0;
             double inv_alpha = 1.0 - alpha;
-            
+
             return RGB(static_cast<uint8_t>(r * alpha + background.r * inv_alpha),
                        static_cast<uint8_t>(g * alpha + background.g * inv_alpha),
-                       static_cast<uint8_t>(b * alpha + background.b * inv_alpha),
-                       255);
+                       static_cast<uint8_t>(b * alpha + background.b * inv_alpha), 255);
         }
 
         // Set alpha channel
-        constexpr RGB with_alpha(uint8_t new_alpha) const {
-            return RGB(r, g, b, new_alpha);
-        }
+        constexpr RGB with_alpha(uint8_t new_alpha) const { return RGB(r, g, b, new_alpha); }
 
         // Get transparency (inverse of alpha)
-        constexpr double transparency() const {
-            return 1.0 - (a / 255.0);
-        }
+        constexpr double transparency() const { return 1.0 - (a / 255.0); }
 
         // Check if color is transparent
-        constexpr bool is_transparent() const {
-            return a < 255;
-        }
+        constexpr bool is_transparent() const { return a < 255; }
 
         // Check if color is opaque
-        constexpr bool is_opaque() const {
-            return a == 255;
-        }
+        constexpr bool is_opaque() const { return a == 255; }
 
         // Luminance calculation (perceived brightness)
         constexpr double luminance() const { return 0.299 * r + 0.587 * g + 0.114 * b; }
@@ -372,8 +361,8 @@ namespace pigment {
 
         MONO operator-(const MONO &other) const { return MONO(std::clamp(static_cast<int>(v) - other.v, 0, 255), a); }
 
-        constexpr MONO operator*(double factor) const { 
-            return MONO(static_cast<uint8_t>(v * factor > 255 ? 255 : (v * factor < 0 ? 0 : v * factor)), a); 
+        constexpr MONO operator*(double factor) const {
+            return MONO(static_cast<uint8_t>(v * factor > 255 ? 255 : (v * factor < 0 ? 0 : v * factor)), a);
         }
 
         bool operator==(const MONO &other) const { return v == other.v && a == other.a; }
@@ -418,6 +407,6 @@ namespace pigment {
     };
 
     // Implementation of RGB conversion constructor for MONO
-    inline RGB::RGB(const MONO& mono) : r(mono.v), g(mono.v), b(mono.v), a(mono.a) {}
+    inline RGB::RGB(const MONO &mono) : r(mono.v), g(mono.v), b(mono.v), a(mono.a) {}
 
 } // namespace pigment

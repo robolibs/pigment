@@ -83,19 +83,14 @@ namespace pigment {
         // Equality operators
         bool operator==(const XYZ &other) const {
             const double epsilon = 1e-6;
-            return std::abs(X - other.X) < epsilon && 
-                   std::abs(Y - other.Y) < epsilon && 
+            return std::abs(X - other.X) < epsilon && std::abs(Y - other.Y) < epsilon &&
                    std::abs(Z - other.Z) < epsilon;
         }
 
-        bool operator!=(const XYZ &other) const {
-            return !(*this == other);
-        }
+        bool operator!=(const XYZ &other) const { return !(*this == other); }
 
         // Get luminance (Y component represents luminance)
-        double luminance() const {
-            return Y;
-        }
+        double luminance() const { return Y; }
 
         // Normalize values to prevent out-of-gamut issues
         void normalize() {
@@ -106,7 +101,7 @@ namespace pigment {
     };
 
     // Implementation of RGB conversion constructor for XYZ
-    inline RGB::RGB(const XYZ& xyz) {
+    inline RGB::RGB(const XYZ &xyz) {
         RGB temp = xyz.to_rgb();
         r = temp.r;
         g = temp.g;

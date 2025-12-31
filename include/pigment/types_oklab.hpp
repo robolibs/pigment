@@ -94,29 +94,20 @@ namespace pigment {
         // Equality operators
         bool operator==(const OKLAB &other) const {
             const double epsilon = 1e-6;
-            return std::abs(L - other.L) < epsilon && 
-                   std::abs(a - other.a) < epsilon && 
+            return std::abs(L - other.L) < epsilon && std::abs(a - other.a) < epsilon &&
                    std::abs(b - other.b) < epsilon;
         }
 
-        bool operator!=(const OKLAB &other) const {
-            return !(*this == other);
-        }
+        bool operator!=(const OKLAB &other) const { return !(*this == other); }
 
         // Get lightness
-        double lightness() const {
-            return L;
-        }
+        double lightness() const { return L; }
 
         // Get chroma (colorfulness)
-        double chroma() const {
-            return std::sqrt(a * a + b * b);
-        }
+        double chroma() const { return std::sqrt(a * a + b * b); }
 
         // Get hue angle in radians
-        double hue_radians() const {
-            return std::atan2(b, a);
-        }
+        double hue_radians() const { return std::atan2(b, a); }
 
         // Get hue angle in degrees
         double hue_degrees() const {
@@ -125,24 +116,18 @@ namespace pigment {
         }
 
         // Adjust lightness
-        OKLAB adjust_lightness(double delta) const {
-            return OKLAB(std::clamp(L + delta, 0.0, 1.0), a, b);
-        }
+        OKLAB adjust_lightness(double delta) const { return OKLAB(std::clamp(L + delta, 0.0, 1.0), a, b); }
 
         // Adjust chroma (saturation)
-        OKLAB adjust_chroma(double factor) const {
-            return OKLAB(L, a * factor, b * factor);
-        }
+        OKLAB adjust_chroma(double factor) const { return OKLAB(L, a * factor, b * factor); }
 
-        // Rotate hue by angle in degrees  
+        // Rotate hue by angle in degrees
         OKLAB rotate_hue(double degrees) const {
             double radians = degrees * M_PI / 180.0;
             double cos_h = std::cos(radians);
             double sin_h = std::sin(radians);
-            
-            return OKLAB(L, 
-                        a * cos_h - b * sin_h,
-                        a * sin_h + b * cos_h);
+
+            return OKLAB(L, a * cos_h - b * sin_h, a * sin_h + b * cos_h);
         }
 
         // Calculate perceptual distance to another color
@@ -155,7 +140,7 @@ namespace pigment {
     };
 
     // Implementation of RGB conversion constructor for OKLAB
-    inline RGB::RGB(const OKLAB& oklab) {
+    inline RGB::RGB(const OKLAB &oklab) {
         RGB temp = oklab.to_rgb();
         r = temp.r;
         g = temp.g;

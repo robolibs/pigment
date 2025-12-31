@@ -17,7 +17,7 @@ namespace pigment {
 
         // Hex string constructor
         HSV(const std::string &hex) {
-            RGB rgb(hex);  // Use RGB hex parsing
+            RGB rgb(hex); // Use RGB hex parsing
             *this = fromRGB(rgb);
         }
 
@@ -143,12 +143,12 @@ namespace pigment {
         }
     };
 
-    // Implementation of RGB conversion constructor  
-    inline RGB::RGB(const HSV& hsv) {
+    // Implementation of RGB conversion constructor
+    inline RGB::RGB(const HSV &hsv) {
         RGB temp = hsv.to_rgb();
         r = temp.r;
         g = temp.g;
-        b = temp.b; 
+        b = temp.b;
         a = temp.a;
     }
 

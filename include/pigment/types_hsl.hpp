@@ -17,12 +17,12 @@ namespace pigment {
 
         HSL() = default;
         HSL(double h_, double s_, double l_, uint8_t a_ = 255)
-            : s(static_cast<uint8_t>(std::clamp(s_, 0.0, 1.0) * 255)), 
-              l(static_cast<uint8_t>(std::clamp(l_, 0.0, 1.0) * 255)),
-              a(a_) {
+            : s(static_cast<uint8_t>(std::clamp(s_, 0.0, 1.0) * 255)),
+              l(static_cast<uint8_t>(std::clamp(l_, 0.0, 1.0) * 255)), a(a_) {
             // Normalize hue to [0, 360) before converting to integer
             double normalized_h = std::fmod(h_, 360.0);
-            if (normalized_h < 0) normalized_h += 360.0;
+            if (normalized_h < 0)
+                normalized_h += 360.0;
             h = static_cast<uint16_t>(normalized_h * 100);
             normalize();
         }
@@ -32,7 +32,7 @@ namespace pigment {
             if (hsl_str.empty()) {
                 throw std::invalid_argument("Empty HSL string");
             }
-            
+
             // Check if it's a CSS hsl() or hsla() function
             if (hsl_str.substr(0, 4) == "hsl(" || hsl_str.substr(0, 5) == "hsla(") {
                 parse_css_hsl(hsl_str);
@@ -41,21 +41,21 @@ namespace pigment {
             }
         }
 
-    private:
+      private:
         void parse_css_hsl(const std::string &css_str) {
             // Remove spaces and find the parentheses
             std::string clean = css_str;
             clean.erase(std::remove(clean.begin(), clean.end(), ' '), clean.end());
-            
+
             size_t start = clean.find('(');
             size_t end = clean.find(')', start);
-            
+
             if (start == std::string::npos || end == std::string::npos) {
                 throw std::invalid_argument("Invalid CSS HSL format");
             }
-            
+
             std::string values = clean.substr(start + 1, end - start - 1);
-            
+
             // Split by commas
             std::vector<std::string> parts;
             size_t pos = 0;
@@ -68,17 +68,18 @@ namespace pigment {
                 parts.push_back(values.substr(pos, comma - pos));
                 pos = comma + 1;
             }
-            
+
             if (parts.size() < 3 || parts.size() > 4) {
                 throw std::invalid_argument("Invalid number of HSL components");
             }
-            
+
             // Parse hue (0-360)
             double hue = std::stod(parts[0]);
             double normalized_h = std::fmod(hue, 360.0);
-            if (normalized_h < 0) normalized_h += 360.0;
+            if (normalized_h < 0)
+                normalized_h += 360.0;
             h = static_cast<uint16_t>(normalized_h * 100);
-            
+
             // Parse saturation (remove % if present)
             std::string sat_str = parts[1];
             if (!sat_str.empty() && sat_str.back() == '%') {
@@ -86,7 +87,7 @@ namespace pigment {
             }
             double saturation = std::stod(sat_str) / 100.0;
             s = static_cast<uint8_t>(std::clamp(saturation, 0.0, 1.0) * 255);
-            
+
             // Parse lightness (remove % if present)
             std::string light_str = parts[2];
             if (!light_str.empty() && light_str.back() == '%') {
@@ -94,29 +95,28 @@ namespace pigment {
             }
             double lightness = std::stod(light_str) / 100.0;
             l = static_cast<uint8_t>(std::clamp(lightness, 0.0, 1.0) * 255);
-            
+
             // Parse alpha if present
             a = parts.size() == 4 ? static_cast<uint8_t>(std::clamp(std::stod(parts[3]), 0.0, 1.0) * 255) : 255;
-            
+
             normalize();
         }
 
-    public:
-
+      public:
         // Getters for compatibility with tests expecting double values
         double get_h() const { return h / 100.0; }
         double get_s() const { return s / 255.0; }
         double get_l() const { return l / 255.0; }
-        
+
         // Comparison operators for backward compatibility
         bool operator==(double hue) const { return std::abs(get_h() - hue) < 0.1; }
-        friend bool operator==(double val, const HSL& hsl) { return hsl == val; }
+        friend bool operator==(double val, const HSL &hsl) { return hsl == val; }
 
         void normalize() {
             // Wrap hue to [0, 36000) (0.0-360.0 degrees * 100)
             // Handle negative values properly
             h = ((h % 36000) + 36000) % 36000;
-            
+
             // Saturation and lightness are already clamped by uint8_t range
             s = std::clamp(static_cast<int>(s), 0, 255);
             l = std::clamp(static_cast<int>(l), 0, 255);
@@ -170,7 +170,7 @@ namespace pigment {
         RGB to_rgb() const {
             double l_norm = l / 255.0;
             double s_norm = s / 255.0;
-            
+
             if (s == 0) {
                 return RGB(l, l, l, a);
             }
@@ -197,13 +197,12 @@ namespace pigment {
             double g = hue_to_rgb(p, q, h_norm);
             double b = hue_to_rgb(p, q, h_norm - 1.0 / 3);
 
-            return RGB(static_cast<uint8_t>(std::round(r * 255)), 
-                       static_cast<uint8_t>(std::round(g * 255)),
+            return RGB(static_cast<uint8_t>(std::round(r * 255)), static_cast<uint8_t>(std::round(g * 255)),
                        static_cast<uint8_t>(std::round(b * 255)), a);
         }
 
-        // Color adjustments  
-        HSL adjust_hue(double degrees) const { 
+        // Color adjustments
+        HSL adjust_hue(double degrees) const {
             HSL result = *this;
             // Fix integer overflow by properly handling negative values
             int new_hue = h + static_cast<int>(degrees * 100);
@@ -211,37 +210,37 @@ namespace pigment {
             return result;
         }
 
-        HSL adjust_saturation(double factor) const { 
+        HSL adjust_saturation(double factor) const {
             HSL result = *this;
             result.s = static_cast<uint8_t>(std::clamp(s * factor, 0.0, 255.0));
             return result;
         }
 
-        HSL adjust_lightness(double factor) const { 
+        HSL adjust_lightness(double factor) const {
             HSL result = *this;
             result.l = static_cast<uint8_t>(std::clamp(l * factor, 0.0, 255.0));
             return result;
         }
 
-        HSL saturate(double amount = 0.1) const { 
+        HSL saturate(double amount = 0.1) const {
             HSL result = *this;
             result.s = std::clamp(static_cast<int>(s + amount * 255), 0, 255);
             return result;
         }
 
-        HSL desaturate(double amount = 0.1) const { 
+        HSL desaturate(double amount = 0.1) const {
             HSL result = *this;
             result.s = std::clamp(static_cast<int>(s - amount * 255), 0, 255);
             return result;
         }
 
-        HSL lighten(double amount = 0.1) const { 
+        HSL lighten(double amount = 0.1) const {
             HSL result = *this;
             result.l = std::clamp(static_cast<int>(l + amount * 255), 0, 255);
             return result;
         }
 
-        HSL darken(double amount = 0.1) const { 
+        HSL darken(double amount = 0.1) const {
             HSL result = *this;
             result.l = std::clamp(static_cast<int>(l - amount * 255), 0, 255);
             return result;
@@ -278,10 +277,10 @@ namespace pigment {
     };
 
     // Implementation of RGB conversion constructor
-    inline RGB::RGB(const HSL& hsl) {
+    inline RGB::RGB(const HSL &hsl) {
         RGB temp = hsl.to_rgb();
         r = temp.r;
-        g = temp.g; 
+        g = temp.g;
         b = temp.b;
         a = temp.a;
     }
