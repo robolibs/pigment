@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.3] - 2026-01-01
+
+### <!-- 0 -->⛰️  Features
+
+- Add Datapod serialization for color types
+
 ## [0.0.2] - 2025-12-31
 
 ### <!-- 2 -->🚜 Refactor
