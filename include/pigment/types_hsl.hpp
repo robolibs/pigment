@@ -1,6 +1,9 @@
 #pragma once
 
 #include "types_basic.hpp"
+
+#include <datapod/matrix/vector.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -9,16 +12,30 @@
 
 namespace pigment {
 
+    /**
+     * @brief HSL color type built on datapod::mat::vector
+     *
+     * Stores Hue (0-36000, representing 0.0-360.0 degrees * 100),
+     * Saturation (0-255), Lightness (0-255), and Alpha (0-255).
+     *
+     * Uses a mixed storage approach:
+     * - hue as uint16_t for precision
+     * - s, l, alpha as uint8_t for compact storage
+     */
     struct HSL {
-        uint16_t h = 0;  // 0-36000 (representing 0.0-360.0 degrees * 100)
-        uint8_t s = 0;   // 0-255 (representing 0.0-1.0 saturation)
-        uint8_t l = 0;   // 0-255 (representing 0.0-1.0 lightness)
-        uint8_t a = 255; // 0-255 alpha
+        uint16_t h = 0;      // 0-36000 (representing 0.0-360.0 degrees * 100)
+        uint8_t s = 0;       // 0-255 (representing 0.0-1.0 saturation)
+        uint8_t l = 0;       // 0-255 (representing 0.0-1.0 lightness)
+        uint8_t alpha = 255; // 0-255 alpha
+
+        // Serialization support
+        auto members() noexcept { return std::tie(h, s, l, alpha); }
+        auto members() const noexcept { return std::tie(h, s, l, alpha); }
 
         HSL() = default;
         HSL(double h_, double s_, double l_, uint8_t a_ = 255)
             : s(static_cast<uint8_t>(std::clamp(s_, 0.0, 1.0) * 255)),
-              l(static_cast<uint8_t>(std::clamp(l_, 0.0, 1.0) * 255)), a(a_) {
+              l(static_cast<uint8_t>(std::clamp(l_, 0.0, 1.0) * 255)), alpha(a_) {
             // Normalize hue to [0, 360) before converting to integer
             double normalized_h = std::fmod(h_, 360.0);
             if (normalized_h < 0)
@@ -97,7 +114,7 @@ namespace pigment {
             l = static_cast<uint8_t>(std::clamp(lightness, 0.0, 1.0) * 255);
 
             // Parse alpha if present
-            a = parts.size() == 4 ? static_cast<uint8_t>(std::clamp(std::stod(parts[3]), 0.0, 1.0) * 255) : 255;
+            alpha = parts.size() == 4 ? static_cast<uint8_t>(std::clamp(std::stod(parts[3]), 0.0, 1.0) * 255) : 255;
 
             normalize();
         }
@@ -120,17 +137,17 @@ namespace pigment {
             // Saturation and lightness are already clamped by uint8_t range
             s = std::clamp(static_cast<int>(s), 0, 255);
             l = std::clamp(static_cast<int>(l), 0, 255);
-            a = std::clamp(static_cast<int>(a), 0, 255);
+            alpha = std::clamp(static_cast<int>(alpha), 0, 255);
         }
 
         // Convert from RGB
         static HSL fromRGB(const RGB &rgb) {
-            double r = rgb.r / 255.0;
-            double g = rgb.g / 255.0;
-            double b = rgb.b / 255.0;
+            double r_val = rgb.r() / 255.0;
+            double g_val = rgb.g() / 255.0;
+            double b_val = rgb.b() / 255.0;
 
-            double max_val = std::max({r, g, b});
-            double min_val = std::min({r, g, b});
+            double max_val = std::max({r_val, g_val, b_val});
+            double min_val = std::min({r_val, g_val, b_val});
             double delta = max_val - min_val;
 
             HSL hsl;
@@ -149,18 +166,18 @@ namespace pigment {
 
                 // Hue (0-35999, representing 0.0-359.99 degrees)
                 double hue;
-                if (max_val == r) {
-                    hue = (g - b) / delta + (g < b ? 6 : 0);
-                } else if (max_val == g) {
-                    hue = (b - r) / delta + 2;
+                if (max_val == r_val) {
+                    hue = (g_val - b_val) / delta + (g_val < b_val ? 6 : 0);
+                } else if (max_val == g_val) {
+                    hue = (b_val - r_val) / delta + 2;
                 } else {
-                    hue = (r - g) / delta + 4;
+                    hue = (r_val - g_val) / delta + 4;
                 }
                 hue /= 6;
                 hue *= 360;
                 hsl.h = static_cast<uint16_t>(hue * 100);
             }
-            hsl.a = rgb.a;
+            hsl.alpha = rgb.a();
             hsl.normalize();
 
             return hsl;
@@ -172,7 +189,7 @@ namespace pigment {
             double s_norm = s / 255.0;
 
             if (s == 0) {
-                return RGB(l, l, l, a);
+                return RGB(l, l, l, alpha);
             }
 
             auto hue_to_rgb = [](double p, double q, double t) {
@@ -193,12 +210,12 @@ namespace pigment {
             double p = 2 * l_norm - q;
             double h_norm = (h / 100.0) / 360.0;
 
-            double r = hue_to_rgb(p, q, h_norm + 1.0 / 3);
-            double g = hue_to_rgb(p, q, h_norm);
-            double b = hue_to_rgb(p, q, h_norm - 1.0 / 3);
+            double r_val = hue_to_rgb(p, q, h_norm + 1.0 / 3);
+            double g_val = hue_to_rgb(p, q, h_norm);
+            double b_val = hue_to_rgb(p, q, h_norm - 1.0 / 3);
 
-            return RGB(static_cast<uint8_t>(std::round(r * 255)), static_cast<uint8_t>(std::round(g * 255)),
-                       static_cast<uint8_t>(std::round(b * 255)), a);
+            return RGB(static_cast<uint8_t>(std::round(r_val * 255)), static_cast<uint8_t>(std::round(g_val * 255)),
+                       static_cast<uint8_t>(std::round(b_val * 255)), alpha);
         }
 
         // Color adjustments
@@ -271,7 +288,7 @@ namespace pigment {
             result.h = hue_dist(gen);
             result.s = sat_dist(gen);
             result.l = light_dist(gen);
-            result.a = 255;
+            result.alpha = 255;
             return result;
         }
     };
@@ -279,10 +296,10 @@ namespace pigment {
     // Implementation of RGB conversion constructor
     inline RGB::RGB(const HSL &hsl) {
         RGB temp = hsl.to_rgb();
-        r = temp.r;
-        g = temp.g;
-        b = temp.b;
-        a = temp.a;
+        data_[0] = temp.r();
+        data_[1] = temp.g();
+        data_[2] = temp.b();
+        data_[3] = temp.a();
     }
 
 } // namespace pigment

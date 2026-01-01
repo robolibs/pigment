@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types_basic.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -80,26 +81,51 @@ namespace pigment {
         }
     } // namespace lab_tables
 
-    struct LAB {
-        double l = 0.0;  // L* (lightness) 0-100
-        double a = 0.0;  // a* component (green-red) typically -128 to 127
-        double b = 0.0;  // b* component (blue-yellow) typically -128 to 127
-        int alpha = 255; // alpha channel 0-255
+    /**
+     * @brief LAB color type built on datapod::mat::vector<double, 4>
+     *
+     * Stores L* (lightness 0-100), a* (green-red), b* (blue-yellow), and alpha.
+     * Uses datapod's vector for efficient storage and serialization support.
+     */
+    struct LAB : public datapod::mat::vector<double, 4> {
+        using base_type = datapod::mat::vector<double, 4>;
 
-        LAB() = default;
-        LAB(double l_, double a_, double b_, int alpha_ = 255) : l(l_), a(a_), b(b_), alpha(alpha_) {}
+        // Accessors for color components
+        double &l() { return data_[0]; }
+        double &a() { return data_[1]; }
+        double &b() { return data_[2]; }
+        double &alpha() { return data_[3]; }
+
+        const double &l() const { return data_[0]; }
+        const double &a() const { return data_[1]; }
+        const double &b() const { return data_[2]; }
+        const double &alpha() const { return data_[3]; }
+
+        LAB() {
+            data_[0] = 0.0;
+            data_[1] = 0.0;
+            data_[2] = 0.0;
+            data_[3] = 255.0;
+        }
+
+        LAB(double l_, double a_, double b_, double alpha_ = 255.0) {
+            data_[0] = l_;
+            data_[1] = a_;
+            data_[2] = b_;
+            data_[3] = alpha_;
+        }
 
         // Convert from RGB using D65 illuminant (optimized with lookup tables)
         static LAB fromRGB(const RGB &rgb) {
             // Use lookup tables for gamma correction
-            double r = lab_tables::fast_gamma_to_linear(rgb.r);
-            double g = lab_tables::fast_gamma_to_linear(rgb.g);
-            double b = lab_tables::fast_gamma_to_linear(rgb.b);
+            double r_val = lab_tables::fast_gamma_to_linear(rgb.r());
+            double g_val = lab_tables::fast_gamma_to_linear(rgb.g());
+            double b_val = lab_tables::fast_gamma_to_linear(rgb.b());
 
             // Convert to XYZ using sRGB matrix
-            double x = r * 0.4124564 + g * 0.3575761 + b * 0.1804375;
-            double y = r * 0.2126729 + g * 0.7151522 + b * 0.0721750;
-            double z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041;
+            double x = r_val * 0.4124564 + g_val * 0.3575761 + b_val * 0.1804375;
+            double y = r_val * 0.2126729 + g_val * 0.7151522 + b_val * 0.0721750;
+            double z = r_val * 0.0193339 + g_val * 0.1191920 + b_val * 0.9503041;
 
             // Normalize to D65 illuminant
             x /= 0.95047;
@@ -112,10 +138,10 @@ namespace pigment {
             double fz = lab_tables::fast_lab_f(z);
 
             LAB lab;
-            lab.l = 116.0 * fy - 16.0;
-            lab.a = 500.0 * (fx - fy);
-            lab.b = 200.0 * (fy - fz);
-            lab.alpha = rgb.a;
+            lab.data_[0] = 116.0 * fy - 16.0;
+            lab.data_[1] = 500.0 * (fx - fy);
+            lab.data_[2] = 200.0 * (fy - fz);
+            lab.data_[3] = static_cast<double>(rgb.a());
 
             return lab;
         }
@@ -123,9 +149,9 @@ namespace pigment {
         // Convert to RGB (optimized with lookup tables)
         RGB to_rgb() const {
             // Convert LAB to XYZ
-            double fy = (l + 16.0) / 116.0;
-            double fx = a / 500.0 + fy;
-            double fz = fy - b / 200.0;
+            double fy = (l() + 16.0) / 116.0;
+            double fx = a() / 500.0 + fy;
+            double fz = fy - b() / 200.0;
 
             // Use lookup tables for f inverse function
             double x = lab_tables::fast_lab_f_inv(fx) * 0.95047;
@@ -133,37 +159,37 @@ namespace pigment {
             double z = lab_tables::fast_lab_f_inv(fz) * 1.08883;
 
             // Convert XYZ to RGB
-            double r = x * 3.2404542 + y * -1.5371385 + z * -0.4985314;
-            double g = x * -0.9692660 + y * 1.8760108 + z * 0.0415560;
-            double b = x * 0.0556434 + y * -0.2040259 + z * 1.0572252;
+            double r_val = x * 3.2404542 + y * -1.5371385 + z * -0.4985314;
+            double g_val = x * -0.9692660 + y * 1.8760108 + z * 0.0415560;
+            double b_val = x * 0.0556434 + y * -0.2040259 + z * 1.0572252;
 
             // Apply inverse gamma correction using lookup tables
-            r = lab_tables::fast_linear_to_gamma(r);
-            g = lab_tables::fast_linear_to_gamma(g);
-            b = lab_tables::fast_linear_to_gamma(b);
+            r_val = lab_tables::fast_linear_to_gamma(r_val);
+            g_val = lab_tables::fast_linear_to_gamma(g_val);
+            b_val = lab_tables::fast_linear_to_gamma(b_val);
 
-            return RGB(std::clamp(static_cast<int>(std::round(r * 255)), 0, 255),
-                       std::clamp(static_cast<int>(std::round(g * 255)), 0, 255),
-                       std::clamp(static_cast<int>(std::round(b * 255)), 0, 255), alpha);
+            return RGB(std::clamp(static_cast<int>(std::round(r_val * 255)), 0, 255),
+                       std::clamp(static_cast<int>(std::round(g_val * 255)), 0, 255),
+                       std::clamp(static_cast<int>(std::round(b_val * 255)), 0, 255), static_cast<uint8_t>(alpha()));
         }
 
         // Calculate Delta E (color difference) - CIE76 formula
         double delta_e(const LAB &other) const {
-            double dl = l - other.l;
-            double da = a - other.a;
-            double db = b - other.b;
+            double dl = l() - other.l();
+            double da = a() - other.a();
+            double db = b() - other.b();
             return std::sqrt(dl * dl + da * da + db * db);
         }
 
         // More accurate Delta E 2000 calculation
         double delta_e_2000(const LAB &other) const {
             // Simplified implementation - full CIE Delta E 2000 is quite complex
-            double dl = l - other.l;
-            double da = a - other.a;
-            double db = b - other.b;
+            double dl = l() - other.l();
+            double da = a() - other.a();
+            double db = b() - other.b();
 
-            double c1 = std::sqrt(a * a + b * b);
-            double c2 = std::sqrt(other.a * other.a + other.b * other.b);
+            double c1 = std::sqrt(a() * a() + b() * b());
+            double c2 = std::sqrt(other.a() * other.a() + other.b() * other.b());
             double dc = c1 - c2;
 
             double dh = std::sqrt(da * da + db * db - dc * dc);
@@ -179,23 +205,25 @@ namespace pigment {
         bool is_similar(const LAB &other, double threshold = 2.3) const { return delta_e(other) < threshold; }
 
         // Adjust lightness
-        LAB adjust_lightness(double amount) const { return LAB(std::clamp(l + amount, 0.0, 100.0), a, b, alpha); }
+        LAB adjust_lightness(double amount) const {
+            return LAB(std::clamp(l() + amount, 0.0, 100.0), a(), b(), alpha());
+        }
 
         // Mix two LAB colors
         LAB mix(const LAB &other, double ratio = 0.5) const {
             ratio = std::clamp(ratio, 0.0, 1.0);
-            return LAB(l * (1 - ratio) + other.l * ratio, a * (1 - ratio) + other.a * ratio,
-                       b * (1 - ratio) + other.b * ratio, static_cast<int>(alpha * (1 - ratio) + other.alpha * ratio));
+            return LAB(l() * (1 - ratio) + other.l() * ratio, a() * (1 - ratio) + other.a() * ratio,
+                       b() * (1 - ratio) + other.b() * ratio, alpha() * (1 - ratio) + other.alpha() * ratio);
         }
     };
 
     // Implementation of RGB conversion constructor
     inline RGB::RGB(const LAB &lab) {
         RGB temp = lab.to_rgb();
-        r = temp.r;
-        g = temp.g;
-        b = temp.b;
-        a = temp.a;
+        data_[0] = temp.r();
+        data_[1] = temp.g();
+        data_[2] = temp.b();
+        data_[3] = temp.a();
     }
 
 } // namespace pigment

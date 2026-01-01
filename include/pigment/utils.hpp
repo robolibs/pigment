@@ -3,6 +3,7 @@
 #include "types_basic.hpp"
 #include "types_hsl.hpp"
 #include "types_lab.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -23,9 +24,9 @@ namespace pigment {
 
             static RGB simulate(const RGB &color, Type type) {
                 // Simplified simulation using transformation matrices
-                double r = color.r / 255.0;
-                double g = color.g / 255.0;
-                double b = color.b / 255.0;
+                double r = color.r() / 255.0;
+                double g = color.g() / 255.0;
+                double b = color.b() / 255.0;
 
                 double nr, ng, nb;
 
@@ -51,7 +52,7 @@ namespace pigment {
 
                 return RGB(std::clamp(static_cast<int>(nr * 255), 0, 255),
                            std::clamp(static_cast<int>(ng * 255), 0, 255),
-                           std::clamp(static_cast<int>(nb * 255), 0, 255), color.a);
+                           std::clamp(static_cast<int>(nb * 255), 0, 255), color.a());
             }
         };
 
@@ -104,9 +105,9 @@ namespace pigment {
         // Color temperature estimation (in Kelvin)
         inline double color_temperature(const RGB &color) {
             // Simplified calculation based on chromaticity
-            double r = color.r / 255.0;
-            double g = color.g / 255.0;
-            double b = color.b / 255.0;
+            double r = color.r() / 255.0;
+            double g = color.g() / 255.0;
+            double b = color.b() / 255.0;
 
             // Convert to XYZ first (simplified)
             double x = r * 0.4124 + g * 0.3576 + b * 0.1805;
@@ -172,7 +173,7 @@ namespace pigment {
             return colors;
         }
 
-        // Generate colors based on golden ratio (137.5°)
+        // Generate colors based on golden ratio (137.5 deg)
         inline std::vector<RGB> generate_golden_ratio_scheme(const RGB &base, int count = 5) {
             constexpr double GOLDEN_ANGLE = 137.507764050; // Golden angle in degrees
             HSL hsl = HSL::fromRGB(base);
@@ -254,9 +255,9 @@ namespace pigment {
 
         // Simple RGB Euclidean distance
         inline double rgb_distance(const RGB &color1, const RGB &color2) {
-            double dr = color1.r - color2.r;
-            double dg = color1.g - color2.g;
-            double db = color1.b - color2.b;
+            double dr = color1.r() - color2.r();
+            double dg = color1.g() - color2.g();
+            double db = color1.b() - color2.b();
             return std::sqrt(dr * dr + dg * dg + db * db);
         }
 
@@ -442,19 +443,19 @@ namespace pigment {
 
         // Grayscale conversion variants
         inline RGB to_grayscale_average(const RGB &color) {
-            uint8_t gray = static_cast<uint8_t>((color.r + color.g + color.b) / 3);
-            return RGB(gray, gray, gray, color.a);
+            uint8_t gray = static_cast<uint8_t>((color.r() + color.g() + color.b()) / 3);
+            return RGB(gray, gray, gray, color.a());
         }
 
         inline RGB to_grayscale_luminance(const RGB &color) {
             uint8_t gray = static_cast<uint8_t>(color.luminance());
-            return RGB(gray, gray, gray, color.a);
+            return RGB(gray, gray, gray, color.a());
         }
 
         inline RGB to_grayscale_lightness(const RGB &color) {
             uint8_t gray = static_cast<uint8_t>(
-                (std::max({color.r, color.g, color.b}) + std::min({color.r, color.g, color.b})) / 2);
-            return RGB(gray, gray, gray, color.a);
+                (std::max({color.r(), color.g(), color.b()}) + std::min({color.r(), color.g(), color.b()})) / 2);
+            return RGB(gray, gray, gray, color.a());
         }
 
         inline RGB to_grayscale_desaturate(const RGB &color) {
@@ -464,15 +465,15 @@ namespace pigment {
 
         // Sepia tone conversion
         inline RGB to_sepia(const RGB &color) {
-            double r = color.r;
-            double g = color.g;
-            double b = color.b;
+            double r = color.r();
+            double g = color.g();
+            double b = color.b();
 
             uint8_t sepia_r = static_cast<uint8_t>(std::clamp((r * 0.393) + (g * 0.769) + (b * 0.189), 0.0, 255.0));
             uint8_t sepia_g = static_cast<uint8_t>(std::clamp((r * 0.349) + (g * 0.686) + (b * 0.168), 0.0, 255.0));
             uint8_t sepia_b = static_cast<uint8_t>(std::clamp((r * 0.272) + (g * 0.534) + (b * 0.131), 0.0, 255.0));
 
-            return RGB(sepia_r, sepia_g, sepia_b, color.a);
+            return RGB(sepia_r, sepia_g, sepia_b, color.a());
         }
 
         // Remove duplicate colors from palette

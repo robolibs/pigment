@@ -9,7 +9,7 @@ local PROJECT_VERSION = "0.0.2"
 --   Local:  {"name", "../path/to/local"}  (optional: uses git if not found)
 --   System: "pkgconfig::libname" or {system = "boost"}
 local LIB_DEPS = {
-    -- {"datapod", "https://github.com/robolibs/datapod.git", "0.0.15"},
+    {"datapod", "https://github.com/robolibs/datapod.git", "0.0.18"},
 }
 local EXAMPLE_DEPS = {
     -- additional deps for examples (lib deps are auto-included)

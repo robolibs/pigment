@@ -2,6 +2,7 @@
 
 #include "types_basic.hpp"
 #include "types_hsl.hpp"
+
 #include <algorithm>
 #include <random>
 #include <string>
@@ -126,7 +127,7 @@ namespace pigment {
 
             for (size_t i = 0; i < count; ++i) {
                 double lightness = 0.2 + (0.6 * i / (count - 1));
-                colors.push_back(HSL(hsl.h, hsl.s, lightness, hsl.a).to_rgb());
+                colors.push_back(HSL(hsl.get_h(), hsl.get_s(), lightness, hsl.alpha).to_rgb());
             }
 
             return Palette(colors);
@@ -137,11 +138,11 @@ namespace pigment {
             std::vector<RGB> colors;
 
             double step = range / (count - 1);
-            double start_hue = hsl.h - range / 2.0;
+            double start_hue = hsl.get_h() - range / 2.0;
 
             for (size_t i = 0; i < count; ++i) {
                 double hue = start_hue + (step * i);
-                colors.push_back(HSL(hue, hsl.s, hsl.l, hsl.a).to_rgb());
+                colors.push_back(HSL(hue, hsl.get_s(), hsl.get_l(), hsl.alpha).to_rgb());
             }
 
             return Palette(colors);
