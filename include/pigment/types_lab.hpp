@@ -82,13 +82,13 @@ namespace pigment {
     } // namespace lab_tables
 
     /**
-     * @brief LAB color type built on datapod::mat::vector<double, 4>
+     * @brief LAB color type built on datapod::mat::Vector<double, 4>
      *
      * Stores L* (lightness 0-100), a* (green-red), b* (blue-yellow), and alpha.
      * Uses datapod's vector for efficient storage and serialization support.
      */
-    struct LAB : public datapod::mat::vector<double, 4> {
-        using base_type = datapod::mat::vector<double, 4>;
+    struct LAB : public datapod::mat::Vector<double, 4> {
+        using base_type = datapod::mat::Vector<double, 4>;
 
         // Accessors for color components
         double &l() { return data_[0]; }

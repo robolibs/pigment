@@ -8,13 +8,13 @@
 namespace pigment {
 
     /**
-     * @brief OKLAB color type built on datapod::mat::vector<double, 3>
+     * @brief OKLAB color type built on datapod::mat::Vector<double, 3>
      *
      * Stores L (lightness 0-1), a and b (green-red and blue-yellow, ~-0.4 to 0.4).
      * Uses datapod's vector for efficient storage and serialization support.
      */
-    struct OKLAB : public datapod::mat::vector<double, 3> {
-        using base_type = datapod::mat::vector<double, 3>;
+    struct OKLAB : public datapod::mat::Vector<double, 3> {
+        using base_type = datapod::mat::Vector<double, 3>;
 
         // Accessors for color components
         double &l() { return data_[0]; }

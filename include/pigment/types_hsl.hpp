@@ -13,7 +13,7 @@
 namespace pigment {
 
     /**
-     * @brief HSL color type built on datapod::mat::vector
+     * @brief HSL color type built on datapod::mat::Vector
      *
      * Stores Hue (0-36000, representing 0.0-360.0 degrees * 100),
      * Saturation (0-255), Lightness (0-255), and Alpha (0-255).

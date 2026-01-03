@@ -8,13 +8,13 @@
 namespace pigment {
 
     /**
-     * @brief HSV color type built on datapod::mat::vector<float, 3>
+     * @brief HSV color type built on datapod::mat::Vector<float, 3>
      *
      * Stores Hue (0-360), Saturation (0-1), and Value (0-1) as floats.
      * Uses datapod's vector for efficient storage and serialization support.
      */
-    struct HSV : public dp::mat::vector<float, 3> {
-        using base_type = dp::mat::vector<float, 3>;
+    struct HSV : public dp::mat::Vector<float, 3> {
+        using base_type = dp::mat::Vector<float, 3>;
 
         // Accessors for color components
         float &h() { return data_[0]; }

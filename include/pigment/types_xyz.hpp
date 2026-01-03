@@ -8,13 +8,13 @@
 namespace pigment {
 
     /**
-     * @brief XYZ color type built on datapod::mat::vector<double, 3>
+     * @brief XYZ color type built on datapod::mat::Vector<double, 3>
      *
      * Stores X, Y, Z values (typically 0-95.047, 0-100, 0-108.883 for D65 illuminant).
      * Uses datapod's vector for efficient storage and serialization support.
      */
-    struct XYZ : public datapod::mat::vector<double, 3> {
-        using base_type = datapod::mat::vector<double, 3>;
+    struct XYZ : public datapod::mat::Vector<double, 3> {
+        using base_type = datapod::mat::Vector<double, 3>;
 
         // Accessors for color components
         double &x() { return data_[0]; }

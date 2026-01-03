@@ -9,13 +9,13 @@
 namespace pigment {
 
     /**
-     * @brief LCH color type built on datapod::mat::vector<double, 3>
+     * @brief LCH color type built on datapod::mat::Vector<double, 3>
      *
      * Stores L (lightness 0-100), C (chroma 0-~140), H (hue 0-360 degrees).
      * Uses datapod's vector for efficient storage and serialization support.
      */
-    struct LCH : public datapod::mat::vector<double, 3> {
-        using base_type = datapod::mat::vector<double, 3>;
+    struct LCH : public datapod::mat::Vector<double, 3> {
+        using base_type = datapod::mat::Vector<double, 3>;
 
         // Accessors for color components
         double &l() { return data_[0]; }

@@ -28,13 +28,13 @@ namespace pigment {
     struct LCH;
 
     /**
-     * @brief RGB color type built on datapod::mat::vector<uint8_t, 4>
+     * @brief RGB color type built on datapod::mat::Vector<uint8_t, 4>
      *
      * Stores RGBA values as a 4-element vector with r, g, b, a components.
      * Uses datapod's vector for efficient storage and serialization support.
      */
-    struct RGB : public dp::mat::vector<uint8_t, 4> {
-        using base_type = dp::mat::vector<uint8_t, 4>;
+    struct RGB : public dp::mat::Vector<uint8_t, 4> {
+        using base_type = dp::mat::Vector<uint8_t, 4>;
 
         // Accessors for color components
         uint8_t &r() { return data_[0]; }
@@ -385,13 +385,13 @@ namespace pigment {
     };
 
     /**
-     * @brief Monochrome color type built on datapod::mat::vector<uint8_t, 2>
+     * @brief Monochrome color type built on datapod::mat::Vector<uint8_t, 2>
      *
      * Stores grayscale value and alpha as a 2-element vector.
      * Uses datapod's vector for efficient storage and serialization support.
      */
-    struct MONO : public dp::mat::vector<uint8_t, 2> {
-        using base_type = dp::mat::vector<uint8_t, 2>;
+    struct MONO : public dp::mat::Vector<uint8_t, 2> {
+        using base_type = dp::mat::Vector<uint8_t, 2>;
 
         // Accessors for components
         uint8_t &v() { return data_[0]; }
