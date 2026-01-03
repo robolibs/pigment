@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.4] - 2026-01-03
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Update datapod vector type to PascalCase
+- Update datapod dependency to latest version
+- Update datapod dependency to latest version
+
 ## [0.0.3] - 2026-01-01
 
 ### <!-- 0 -->⛰️  Features
