@@ -1,6 +1,6 @@
 #pragma once
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 #include <algorithm>
 #include <cmath>

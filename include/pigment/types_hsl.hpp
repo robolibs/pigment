@@ -2,8 +2,6 @@
 
 #include "types_basic.hpp"
 
-#include <datapod/matrix/vector.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
