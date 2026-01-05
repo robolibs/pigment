@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.5] - 2026-01-05
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Update datapod dependency version
+
 ## [0.0.4] - 2026-01-03
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
