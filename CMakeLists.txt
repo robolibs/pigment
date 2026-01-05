@@ -4,14 +4,14 @@ cmake_minimum_required(VERSION 3.15)
 # Project configuration
 # ==================================================================================================
 set(PROJECT_NAME pigment)
-set(PROJECT_VERSION "0.0.4")
+set(PROJECT_VERSION "0.0.5")
 
 # Dependencies formats:
 #   Git:    set(LIB_DEPS "name|https://github.com/org/repo.git|tag" ...)
 #   Find:   set(LIB_DEPS "name" ...)  # Uses find_package
 #   Pkg:    set(LIB_DEPS "pkg::name" ...)  # Uses pkg-config
 set(LIB_DEPS
-    "datapod|https://github.com/robolibs/datapod.git|0.0.22"
+    "datapod|https://github.com/robolibs/datapod.git|0.0.29"
 )
 set(EXAMPLE_DEPS
     # "pkg::rerun_sdk"
